@@ -1,0 +1,23 @@
+[
+  {
+    "$project": {
+      "superTypes": 1
+    }
+  }, {
+    "$group": {
+      "_id": "$superTypes"
+    }
+  }, {
+    "$unwind": {
+      "path": "$_id", 
+      "preserveNullAndEmptyArrays": false
+    }
+  }, {
+    "$group": {
+      "_id": null, 
+      "set": {
+        "$addToSet": "$_id"
+      }
+    }
+  }
+]
