@@ -17,7 +17,9 @@ const processFile = async () => {
       key = `${set}-${num}-${printing}-${lang}`,
       actual = recordsByKey[key];
     if(actual) {
-      actual["Quantity"] = actual["Quantity"] + record["Quantity"]
+      const current = parseInt(actual["Quantity"]),
+        additional = parseInt(record["Quantity"]);
+      actual["Quantity"] = current + additional;
     } else {
       recordsByKey[key] = record;
     }
