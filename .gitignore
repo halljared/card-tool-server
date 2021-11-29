@@ -2,6 +2,7 @@
 node_modules
 /dist
 /card_json
+deduped.csv
 
 
 # local env files

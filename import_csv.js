@@ -16,7 +16,7 @@ const onlyUnique = (val, i, self) => {
 
 const processFile = async () => {
   const parser = fs
-    .createReadStream(`./master.csv`)
+    .createReadStream(`./deduped.csv`)
     .pipe(parse({
     columns: true
     }));

@@ -57,6 +57,14 @@ app.get('/cards/all', (req, res) => {
     res.json(docs);
   });
 });
+app.get('/options/cardnames', (req, res) => {
+  const search = req.query.search;
+  const query = {name: {$regex: new RegExp(search, "i")}};
+  collection.find(query).toArray((err, docs) => {
+    const names = docs.map(item => item.name);
+    res.json(names);
+  });
+});
 app.get('/options/supertypes', (req, res) => {
   collection.aggregate(supersPipeline).toArray((err, docs) => {
     res.json(docs[0].set);
@@ -70,16 +78,31 @@ app.get('/options/subtypes', (req, res) => {
 
 app.post('/cards/page', (req, res) => {
   const tableOptions = req.body.tableOptions,
+    filterOptions = req.body.filterOptions,
     itemsPerPage = tableOptions.itemsPerPage,
     page = tableOptions.page,
     sortBy = tableOptions.sortBy[0],
     sortAsc = !tableOptions.sortDesc[0],
+    query = {},
     sort = {};
+    if(filterOptions.name) {
+      query.name = {$regex: new RegExp(filterOptions.name, "i")};
+    }
+    if(filterOptions.text) {
+      query.oracle_text = {$regex: new RegExp(filterOptions.text, "i")};
+    }
     if(sortBy) {
       sort[sortBy] = sortAsc ? 1 : -1;
     }
-  collection.find().sort(sort).skip(itemsPerPage * (page - 1)).limit(itemsPerPage).toArray((err, docs) => {
-    res.json(docs);
+  collection.find(query).count().then(count => {
+    collection
+      .find(query)
+      .sort(sort)
+      .skip(itemsPerPage * (page - 1))
+      .limit(itemsPerPage)
+      .toArray((err, docs) => {
+        res.json({count, docs});
+      });
   });
 });
 
