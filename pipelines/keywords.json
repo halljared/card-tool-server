@@ -1,0 +1,23 @@
+[
+  {
+    "$project": {
+      "keywords": 1
+    }
+  }, {
+    "$group": {
+      "_id": "$keywords"
+    }
+  }, {
+    "$unwind": {
+      "path": "$_id", 
+      "preserveNullAndEmptyArrays": false
+    }
+  }, {
+    "$group": {
+      "_id": null, 
+      "keywords": {
+        "$addToSet": "$_id"
+      }
+    }
+  }
+]

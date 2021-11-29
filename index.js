@@ -1,8 +1,11 @@
 const express = require('express');
 const { MongoClient } = require('mongodb');
 const app = express();
+require('util').inspect.defaultOptions.depth = null;
 const supersPipeline = require('./pipelines/superTypes.json');
 const subsPipeline = require('./pipelines/subTypes.json');
+const setNamesPipeline = require('./pipelines/setNames.json');
+const keywordsPipeline = require('./pipelines/keywords.json');
 const port = 3000;
 const url = 'mongodb://localhost:27017';
 const client = new MongoClient(url);
@@ -65,6 +68,16 @@ app.get('/options/cardnames', (req, res) => {
     res.json(names);
   });
 });
+app.get('/options/setnames', (req, res) => {
+  collection.aggregate(setNamesPipeline).toArray((err, docs) => {
+    res.json(docs[0].sets);
+  });
+});
+app.get('/options/keywords', (req, res) => {
+  collection.aggregate(keywordsPipeline).toArray((err, docs) => {
+    res.json(docs[0].keywords);
+  });
+});
 app.get('/options/supertypes', (req, res) => {
   collection.aggregate(supersPipeline).toArray((err, docs) => {
     res.json(docs[0].set);
@@ -83,17 +96,50 @@ app.post('/cards/page', (req, res) => {
     page = tableOptions.page,
     sortBy = tableOptions.sortBy[0],
     sortAsc = !tableOptions.sortDesc[0],
+    setNames = filterOptions.setNames,
+    superTypes = filterOptions.superTypes,
+    subTypes = filterOptions.subTypes,
+    keywords = filterOptions.keywords,
+    colors = filterOptions.colors,
+    $and = [],
     query = {},
     sort = {};
-    if(filterOptions.name) {
-      query.name = {$regex: new RegExp(filterOptions.name, "i")};
+  if(filterOptions.name) {
+    query.name = {$regex: new RegExp(filterOptions.name, "i")};
+  }
+  if(filterOptions.text) {
+    query.oracle_text = {$regex: new RegExp(filterOptions.text, "i")};
+  }
+  if(sortBy) {
+    sort[sortBy] = sortAsc ? 1 : -1;
+  }
+  if(setNames && setNames.length > 0) {
+    $and.push({"set_name":{$in: setNames}});
+  }
+  if(superTypes && superTypes.length > 0) {
+    $and.push({"superTypes":{$in: superTypes}});
+  }
+  if(subTypes && subTypes.length > 0) {
+    $and.push({"subTypes":{$in: subTypes}});
+  }
+  if(keywords && keywords.length > 0) {
+    $and.push({"keywords":{$in: keywords}});
+  }
+  if(colors && colors.length > 0) {
+    const exprs = [];
+    for(let color of colors) {
+      exprs.push({color_identity: color});
     }
-    if(filterOptions.text) {
-      query.oracle_text = {$regex: new RegExp(filterOptions.text, "i")};
-    }
-    if(sortBy) {
-      sort[sortBy] = sortAsc ? 1 : -1;
-    }
+    $and.push({$and:exprs});
+  }
+  if($and.length > 0) {
+    query["$and"] = $and;
+  }
+  // if(superTypes && superTypes.length > 0) {
+  //   query["set_name"] = {$in: setNames};
+  // }
+  console.debug(query);
+    
   collection.find(query).count().then(count => {
     collection
       .find(query)
