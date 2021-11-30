@@ -7,8 +7,8 @@ const subsPipeline = require('./pipelines/subTypes.json');
 const setNamesPipeline = require('./pipelines/setNames.json');
 const keywordsPipeline = require('./pipelines/keywords.json');
 const port = 3000;
-const url = 'mongodb://localhost:27017';
-const client = new MongoClient(url);
+const db_uri = process.env.MONGO_URL ? process.env.MONGO_URL : 'mongodb://localhost:27017';
+const client = new MongoClient(db_uri);
 const dbName = 'mtg_card_tool';
 const collectionName = 'player_cards';
 let db = null;
@@ -32,6 +32,7 @@ app.use(function(req, res, next) {
 });
 
 async function connect() {
+  console.log(`Connecting to mongodb at ${db_uri}`);
   await client.connect();
   console.log('Connected successfully to database');
   db = client.db(dbName);
