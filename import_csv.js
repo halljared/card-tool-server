@@ -4,7 +4,6 @@ const parse = require('csv-parse').parse;
 const prod = process.env.APP_ENV == "prod";
 const db_host = prod && process.env.MONGODB_HOSTNAME || "localhost";
 const db_uri = `mongodb://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASSWORD}@${db_host}:27017/${process.env.MONGODB_DATABASE}`;
-console.log(db_uri);
 const client = new MongoClient(db_uri);
 const dbName = 'mtg_card_tool';
 const oracleCards = 'oracle_cards';
