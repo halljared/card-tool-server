@@ -4,6 +4,8 @@ node_modules
 /card_json
 master.csv
 deduped.csv
+notfound.csv
+fixed.csv
 
 
 # local env files

@@ -1,14 +1,18 @@
 const { MongoClient } = require('mongodb');
 const fs = require('fs');
 const parse = require('csv-parse').parse;
+const stringify = require('csv-stringify').stringify;
 const prod = process.env.APP_ENV == "prod";
+const unmatched = process.env.UNMATCHED == "true";
 const db_host = prod && process.env.MONGODB_HOSTNAME || "localhost";
-const db_uri = `mongodb://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASSWORD}@${db_host}:27017/${process.env.MONGODB_DATABASE}`;
-console.log(db_uri);
+const dev_uri = `mongodb://${db_host}:27017`;
+let db_uri = `mongodb://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASSWORD}@${db_host}:27017/${process.env.MONGODB_DATABASE}`;
+db_uri = prod ? db_uri : dev_uri;
 const client = new MongoClient(db_uri);
 const dbName = 'mtg_card_tool';
 const oracleCards = 'oracle_cards';
 const playerCards = 'player_cards';
+const notFound = [];
 let db = null;
 let oracleCollection = null;
 let playerCollection = null;
@@ -19,16 +23,16 @@ const onlyUnique = (val, i, self) => {
 
 const processFile = async () => {
   const parser = fs
-    .createReadStream(`./deduped.csv`)
+    .createReadStream(`./fixed.csv`)
     .pipe(parse({
     columns: true
     }));
   for await (const record of parser) {
     const set = record['Set Code'].toLowerCase(),
       num = record['Card Number'];
-    oracleCollection.findOne({set, collector_number:num})
-      .then(async (result) => {
-        if(result) {
+    await oracleCollection.findOne({set, collector_number:num})
+      .then((result) => {
+        if(result && !unmatched) {
           const prices = result.prices;
           let types = result.type_line;
           const props = [
@@ -87,9 +91,9 @@ const processFile = async () => {
           merged["price"] = parseFloat(price);
           console.log(merged);
           playerCollection.insertOne(merged);
-        } else {
-          // TODO: fix these broken imports
-          // console.log(record);
+        } else if(!result) {
+          console.log(record);
+          notFound.push(record);
         }
       });
   }
@@ -105,8 +109,19 @@ async function connect() {
 
 connect()
   .then(() => {
-    processFile();
+    return processFile();
+  })
+  .then(() => {
+    return new Promise((resolve, reject) => {
+      stringify(notFound, {header: true}, (err, data) => {
+        fs.writeFileSync('notfound.csv', data);
+        resolve();
+      });
+    })
   })
   .catch((err) => {
     console.error(err);
+  })
+  .finally(() => {
+    client.close();
   });
