@@ -46,7 +46,8 @@ const processFile = async () => {
             "set",
             "set_name",
             "collector_number",
-            "rarity"
+            "rarity",
+            "image_uris"
           ];
           let merged = {};
           for(let prop of props) {
@@ -117,7 +118,7 @@ connect()
         fs.writeFileSync('notfound.csv', data);
         resolve();
       });
-    })
+    });
   })
   .catch((err) => {
     console.error(err);
